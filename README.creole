@@ -1,0 +1,11 @@
+= Magic =
+
+This is a libmagic binding for node.js.
+
+== Usage ==
+
+{{{
+var Magic = require('magic'); //Load the library
+var magic = Magic.create(Magic.MAGIC_MIME); //We want MIME output
+console.log(magic.file("/path/to/image.png")); //Outputs "image/png"
+}}}

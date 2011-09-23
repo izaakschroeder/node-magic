@@ -1,0 +1,8 @@
+{
+	"name": "magic",
+	"version": "0.0.1",
+	"description": "Bindings to libmagic.",
+	"author": "Izaak Schroeder",
+	"engine": "node >= 0.4.10",
+	"main": "build/default/magic.node"
+}

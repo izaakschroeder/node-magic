@@ -1,0 +1,5 @@
+# Ignore the binaries folder
+build
+# Ignore wscript lock
+.lock-wscript
+
