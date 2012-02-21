@@ -1,3 +1,2 @@
 = To Do =
- * Method magic.file should probably be made asynchronous because it will (behind the scenes) call blocking code
  * Create more test cases

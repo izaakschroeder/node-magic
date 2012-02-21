@@ -47,6 +47,12 @@
                   String::New("Argument " #I " must be an integer")));  \
   VAR = args[I]->Int32Value();
 
+#define REQ_FN_ARG(I, VAR)                                              \
+  v8::Local<v8::Function> VAR;                                                           \
+  if (args.Length() <= (I) || !args[I]->IsFunction())                   \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be a function")));  \
+  VAR = v8::Local<v8::Function>::Cast(args[I]);
 
 #define REQ_BUF_ARG(I, VARBLOB, VARLEN)                                             \
   const char* VARBLOB;													\
@@ -142,13 +148,73 @@ public:
 		return args.This();
 	}
 	
+	struct MagicBaton {
+		Magic *magic;
+		const char* file;
+		const char* result;
+		Persistent<Function> callback;
+	};
+
+	static void eioFile(eio_req *req)
+	{
+		MagicBaton *baton = static_cast<MagicBaton*>(req->data);
+		baton->result = magic_file(*baton->magic, baton->file);
+
+	}
+
+	static int eioAfterFile(eio_req *req)
+	{
+		HandleScope scope;
+		MagicBaton *baton = static_cast<MagicBaton*>(req->data);
+		ev_unref(EV_DEFAULT_UC);
+		baton->magic->Unref();
+
+		
+
+		if (baton->result == NULL) {
+			Local<Value> argv[] = {
+				Exception::Error(String::New(magic_error(*baton->magic)))
+			};
+			baton->callback->Call(Context::GetCurrent()->Global(), 1, argv);
+		}
+		else {
+			Local<Value> argv[] = {
+				Local<Value>::New(Undefined()),
+				String::New(baton->result)
+			};
+			baton->callback->Call(Context::GetCurrent()->Global(), 2, argv);
+		}
+
+		TryCatch try_catch;
+
+		if (try_catch.HasCaught()) {
+			FatalException(try_catch);
+		}
+
+		baton->callback.Dispose();
+		delete baton->file;
+
+		delete baton;
+		return 0;
+	}
+
 	static Handle<Value> file(const Arguments &args) {
 		REQ_STR_ARG(0, file)
+		REQ_FN_ARG(1, callback)
+
 		Magic* magic = ObjectWrap::Unwrap<Magic>(args.This());
-		const char* output = magic_file(*magic, file);
-		if (output == NULL)
-			return ThrowException(String::New(magic_error(*magic)));
-		return String::New(output);
+
+		MagicBaton *baton = new MagicBaton();
+		baton->magic = magic;
+		baton->file = strdup(file);
+		baton->callback = Persistent<Function>::New(callback);
+
+		magic->Ref();
+
+		eio_custom(eioFile, EIO_PRI_DEFAULT, eioAfterFile, baton);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	
 	static Handle<Value> buffer(const Arguments &args) {

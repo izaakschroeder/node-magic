@@ -1,4 +1,7 @@
 
-var Magic = require('./build/default/magic');
+var Magic = require('magic');
 var magic = Magic.create(Magic.MAGIC_MIME);
-console.log(magic.file("magic.cc"));
+
+magic.file("magic.cc", function(err, result) {
+	console.log(result);
+})

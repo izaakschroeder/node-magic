@@ -7,5 +7,11 @@ This is a libmagic binding for node.js.
 {{{
 var Magic = require('magic'); //Load the library
 var magic = Magic.create(Magic.MAGIC_MIME); //We want MIME output
-console.log(magic.file("/path/to/image.png")); //Outputs "image/png"
+magic.file("/path/to/image.png", function(err, type) {
+	if (err)
+		throw err;
+	
+	//Outputs "image/png"
+	console.log(type);
+}); 
 }}}
